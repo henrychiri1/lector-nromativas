@@ -4,16 +4,31 @@ import edge_tts
 import asyncio
 import os
 
-st.set_page_config(layout="wide", page_title="Lector Profesional Cloud")
-st.title("📚 Lector Profesional - Administrado")
+# Configuración inicial
+st.set_page_config(layout="wide", page_title="Lector Profesional F.D.M.E.R.C.")
 
+# 1. Logo en la barra lateral (Opción 1)
+logo_path = "logo.jpeg"
+if os.path.exists(logo_path):
+    st.sidebar.image(logo_path, use_container_width=True)
+else:
+    st.sidebar.warning("Logo no encontrado. Sube 'logo.jpeg' a la raíz.")
+
+st.title("📚 Lector Profesional - F.D.M.E.R.C.")
+
+# Definir ruta y verificar carpeta
 ruta_docs = "documentos"
-archivos = [f for f in os.listdir(ruta_docs) if f.endswith('.pdf')] if os.path.exists(ruta_docs) else []
-
-if not archivos:
-    st.info("No encontré archivos PDF en 'documentos'.")
+if not os.path.exists(ruta_docs):
+    st.error(f"La carpeta '{ruta_docs}' no existe.")
     st.stop()
 
+# Listar archivos PDF
+archivos = [f for f in os.listdir(ruta_docs) if f.endswith('.pdf')]
+if not archivos:
+    st.info("No encontré archivos PDF en la carpeta 'documentos'.")
+    st.stop()
+
+# 2. Selección de documento
 archivo_seleccionado = st.sidebar.selectbox("Selecciona un libro:", archivos)
 ruta_completa = os.path.join(ruta_docs, archivo_seleccionado)
 
@@ -23,22 +38,15 @@ try:
     pag_num = st.sidebar.number_input("Página:", min_value=1, max_value=len(doc), value=1)
     page = doc.load_page(pag_num - 1)
     
-    # Obtenemos bloques de texto con su información de formato
     blocks = page.get_text("blocks")
-    # Ordenamos los bloques verticalmente
     blocks.sort(key=lambda b: b[1])
     
     texto_final = ""
     for b in blocks:
-        # b[4] contiene el texto del bloque
         bloque_texto = b[4].strip()
-        
-        # Detectamos si es probable que sea un título (bloques cortos y aislados)
         if len(bloque_texto) < 100:
-            # Es un título/subtítulo: mantiene sus saltos de línea para pausas
             texto_final += "\n" + bloque_texto + "\n"
         else:
-            # Es un párrafo: unimos las líneas para que se lea de corrido
             parrafo_limpio = " ".join(bloque_texto.splitlines())
             texto_final += "\n" + parrafo_limpio + "\n"
     
@@ -49,7 +57,7 @@ except Exception as e:
     st.error(f"Error al procesar el PDF: {e}")
     st.stop()
 
-# 4. Botón de acción con el nuevo texto procesado
+# 4. Botón de acción robusto
 if st.button("🔊 Leer página"):
     with st.spinner("Generando narración profesional..."):
         try:
@@ -57,12 +65,15 @@ if st.button("🔊 Leer página"):
             async def generar_final():
                 comunicador = edge_tts.Communicate(texto_final, "es-MX-JorgeNeural")
                 await comunicador.save(temp_file)
+            
             asyncio.run(generar_final())
             
             with open(temp_file, "rb") as f:
                 audio_bytes = f.read()
             st.audio(audio_bytes, format="audio/mp3")
             st.download_button("Descargar MP3", data=audio_bytes, file_name="lectura.mp3", mime="audio/mp3")
-            if os.path.exists(temp_file): os.remove(temp_file)
+            
+            if os.path.exists(temp_file):
+                os.remove(temp_file)
         except Exception as e:
-            st.error(f"Error: {e}")
+            st.error(f"Error técnico: {e}")
