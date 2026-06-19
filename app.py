@@ -7,14 +7,15 @@ import os
 # Configuración inicial
 st.set_page_config(layout="wide", page_title="Lector Profesional F.D.M.E.R.C.")
 
-# 1. Logo en la barra lateral (Opción 1)
-logo_path = "logo.jpeg"
-if os.path.exists(logo_path):
-    st.sidebar.image(logo_path, use_container_width=True)
-else:
-    st.sidebar.warning("Logo no encontrado. Sube 'logo.jpeg' a la raíz.")
-
-st.title("📚 Lector Profesional - F.D.M.E.R.C.")
+# 1. Logo en el encabezado (Opción 2: Logo junto al título)
+col1, col2 = st.columns([1, 6]) # Columna pequeña para logo, grande para título
+with col1:
+    if os.path.exists("logo.jpeg"):
+        st.image("logo.jpeg", width=120)
+    else:
+        st.warning("Logo no encontrado.")
+with col2:
+    st.title("📚 Lector Profesional - F.D.M.E.R.C.")
 
 # Definir ruta y verificar carpeta
 ruta_docs = "documentos"
@@ -32,7 +33,7 @@ if not archivos:
 archivo_seleccionado = st.sidebar.selectbox("Selecciona un libro:", archivos)
 ruta_completa = os.path.join(ruta_docs, archivo_seleccionado)
 
-# 3. Lectura inteligente de bloques (respetando estructura de títulos)
+# 3. Lectura inteligente de bloques
 try:
     doc = fitz.open(ruta_completa)
     pag_num = st.sidebar.number_input("Página:", min_value=1, max_value=len(doc), value=1)
