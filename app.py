@@ -12,14 +12,15 @@ st.set_page_config(layout="wide", page_title="Lector Profesional F.D.M.E.R.C.")
 st.markdown("""
     <style>
     .stButton>button { height: 4em !important; width: 100% !important; font-size: 20px !important; font-weight: bold !important; border-radius: 10px !important; }
-    /* Evitar que el usuario sienta que puede escribir en los selectores */
-    .stSelectbox div[data-baseweb="select"] { cursor: pointer; }
+    /* Bloquea la interacción de escritura en los selectores */
+    .stSelectbox div[data-baseweb="select"] input { caret-color: transparent !important; pointer-events: none !important; }
+    .stSelectbox div[data-baseweb="select"] { cursor: pointer !important; }
     </style>
     """, unsafe_allow_html=True)
 
 st.title("📚 Lector Profesional - F.D.M.E.R.C.")
 
-# 1. Configuración de Voz (Restaurada)
+# 1. Configuración de Voz
 st.sidebar.subheader("⚙️ Configuración de Audio")
 voces = {
     "México (Jorge)": "es-MX-JorgeNeural",
@@ -35,17 +36,17 @@ voz_id = voces[voz_nombre]
 ruta_docs = "documents"
 archivos = [f for f in os.listdir(ruta_docs) if f.endswith('.pdf')]
 if not archivos:
-    st.error("No hay documentos en la carpeta 'documentos'.")
+    st.error("No hay documentos en la carpeta 'documents'.")
     st.stop()
 
 archivo_seleccionado = st.sidebar.selectbox("Selecciona un documento:", archivos)
 ruta_completa = os.path.join(ruta_docs, archivo_seleccionado)
 ruta_indice = ruta_completa + ".idx"
 
-# Marcador fijo para el sistema (ya no es un text_input donde pueden escribir)
+# Marcador fijo
 MARCADOR_FIJO = "###" 
 
-# 3. Sistema de Indexación (Automático y sin intervención del usuario)
+# 3. Sistema de Indexación (Modificado para visualización personalizada)
 def obtener_indice(ruta_pdf):
     if os.path.exists(ruta_indice):
         with open(ruta_indice, "r") as f:
@@ -55,7 +56,13 @@ def obtener_indice(ruta_pdf):
     indices = []
     for i, pagina in enumerate(doc):
         if MARCADOR_FIJO in pagina.get_text():
-            indices.append(f"Sección {len(indices) + 1} (Pág {i+1})")
+            # Lógica personalizada: El primero es Prólogo, los demás Capítulo 1, 2, 3...
+            count = len(indices)
+            if count == 0:
+                titulo = "Prólogo"
+            else:
+                titulo = f"Capítulo {count}"
+            indices.append(titulo)
     
     if not indices:
         indices = ["Sin secciones marcadas"]
@@ -105,6 +112,3 @@ if st.button(f"🔊 ESCUCHAR SECCIÓN"):
                 if os.path.exists(temp_file): os.remove(temp_file)
             except Exception as e:
                 st.error(f"Error técnico: {e}")
-
-st.write("---")
-st.write(f"**Documento activo:** {archivo_seleccionado}")
