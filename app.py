@@ -12,7 +12,7 @@ st.set_page_config(layout="wide", page_title="Lector Profesional F.D.M.E.R.C.")
 st.markdown("""
     <style>
     .stButton>button { height: 4em !important; width: 100% !important; font-size: 20px !important; font-weight: bold !important; border-radius: 10px !important; }
-    /* Bloqueo de escritura en selectores */
+    /* Bloqueo total de escritura en selectores */
     .stSelectbox div[data-baseweb="select"] input { caret-color: transparent !important; pointer-events: none !important; }
     .stSelectbox div[data-baseweb="select"] { cursor: pointer !important; }
     </style>
@@ -45,19 +45,17 @@ ruta_indice = ruta_completa + ".idx"
 
 MARCADOR_FIJO = "###" 
 
-# 3. Sistema de Indexación con nombres personalizados
+# 3. Sistema de Indexación con regeneración automática
 def obtener_indice(ruta_pdf):
+    # Borramos el índice anterior para garantizar que siempre se actualice el nombre visual
     if os.path.exists(ruta_indice):
-        with open(ruta_indice, "r") as f:
-            return json.load(f)
+        os.remove(ruta_indice)
     
     doc = fitz.open(ruta_pdf)
     indices = []
     
-    # Escaneo para crear la lista personalizada
     for i, pagina in enumerate(doc):
         if MARCADOR_FIJO in pagina.get_text():
-            # Si es el primer marcador -> "Prólogo", si no -> "Capítulo N"
             if len(indices) == 0:
                 indices.append("Prólogo")
             else:
@@ -108,9 +106,4 @@ if st.button(f"🔊 ESCUCHAR SECCIÓN"):
                 asyncio.run(generar())
                 
                 st.audio(temp_file, format="audio/mp3")
-                if os.path.exists(temp_file): os.remove(temp_file)
-            except Exception as e:
-                st.error(f"Error técnico: {e}")
-
-st.write("---")
-st.write(f"**Documento activo:** {archivo_seleccionado}")
+                if os.path.exists(temp_file):
