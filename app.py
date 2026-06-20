@@ -8,11 +8,11 @@ import json
 # Configuración inicial
 st.set_page_config(layout="wide", page_title="Lector Profesional F.D.M.E.R.C.")
 
-# Estilos para asegurar que todo sea amigable y bloqueado para edición manual
+# Estilos CSS
 st.markdown("""
     <style>
     .stButton>button { height: 4em !important; width: 100% !important; font-size: 20px !important; font-weight: bold !important; border-radius: 10px !important; }
-    /* Bloquea la interacción de escritura en los selectores */
+    /* Bloqueo de escritura en selectores */
     .stSelectbox div[data-baseweb="select"] input { caret-color: transparent !important; pointer-events: none !important; }
     .stSelectbox div[data-baseweb="select"] { cursor: pointer !important; }
     </style>
@@ -43,10 +43,9 @@ archivo_seleccionado = st.sidebar.selectbox("Selecciona un documento:", archivos
 ruta_completa = os.path.join(ruta_docs, archivo_seleccionado)
 ruta_indice = ruta_completa + ".idx"
 
-# Marcador fijo
 MARCADOR_FIJO = "###" 
 
-# 3. Sistema de Indexación (Modificado para visualización personalizada)
+# 3. Sistema de Indexación con nombres personalizados
 def obtener_indice(ruta_pdf):
     if os.path.exists(ruta_indice):
         with open(ruta_indice, "r") as f:
@@ -54,15 +53,15 @@ def obtener_indice(ruta_pdf):
     
     doc = fitz.open(ruta_pdf)
     indices = []
+    
+    # Escaneo para crear la lista personalizada
     for i, pagina in enumerate(doc):
         if MARCADOR_FIJO in pagina.get_text():
-            # Lógica personalizada: El primero es Prólogo, los demás Capítulo 1, 2, 3...
-            count = len(indices)
-            if count == 0:
-                titulo = "Prólogo"
+            # Si es el primer marcador -> "Prólogo", si no -> "Capítulo N"
+            if len(indices) == 0:
+                indices.append("Prólogo")
             else:
-                titulo = f"Capítulo {count}"
-            indices.append(titulo)
+                indices.append(f"Capítulo {len(indices)}")
     
     if not indices:
         indices = ["Sin secciones marcadas"]
@@ -73,7 +72,7 @@ def obtener_indice(ruta_pdf):
 
 lista_marcadores = obtener_indice(ruta_completa)
 
-# 4. Selector de Sección (Bloqueado para escritura)
+# 4. Selector de Sección (Bloqueado)
 seleccion = st.sidebar.selectbox("Elige la sección a escuchar:", lista_marcadores)
 
 # 5. Lógica de Lectura
@@ -112,3 +111,6 @@ if st.button(f"🔊 ESCUCHAR SECCIÓN"):
                 if os.path.exists(temp_file): os.remove(temp_file)
             except Exception as e:
                 st.error(f"Error técnico: {e}")
+
+st.write("---")
+st.write(f"**Documento activo:** {archivo_seleccionado}")
