@@ -32,7 +32,7 @@ voz_nombre = st.sidebar.selectbox("Elige una voz:", list(voces.keys()))
 voz_id = voces[voz_nombre]
 
 # 2. Selección de Documento
-ruta_docs = "documentos"
+ruta_docs = "documents"
 archivos = [f for f in os.listdir(ruta_docs) if f.endswith('.pdf')]
 if not archivos:
     st.error("No hay documentos en la carpeta 'documentos'.")
