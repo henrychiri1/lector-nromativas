@@ -4,7 +4,6 @@ import edge_tts
 import asyncio
 import os
 import json
-import time
 
 # Configuración inicial
 st.set_page_config(layout="wide", page_title="Lector Profesional F.D.M.E.R.C.")
@@ -22,68 +21,96 @@ st.title("📚 Lector Profesional - F.D.M.E.R.C.")
 
 # 1. Configuración de Voz
 st.sidebar.subheader("⚙️ Configuración de Audio")
-voces = {"México (Jorge)": "es-MX-JorgeNeural", "México (Dalia)": "es-MX-DaliaNeural", "Argentina (Tomas)": "es-AR-TomasNeural"}
-voz_id = st.sidebar.selectbox("Elige una voz:", list(voces.keys()), format_func=lambda x: x)
-voz_id = voces[voz_id]
+voces = {
+    "México (Jorge)": "es-MX-JorgeNeural",
+    "México (Dalia)": "es-MX-DaliaNeural",
+    "Argentina (Tomas)": "es-AR-TomasNeural",
+    "España (Alvaro)": "es-ES-AlvaroNeural",
+    "Colombia (Gonzalo)": "es-CO-GonzaloNeural"
+}
+voz_nombre = st.sidebar.selectbox("Elige una voz:", list(voces.keys()))
+voz_id = voces[voz_nombre]
 
-# 2. Selección de Documento con Ruta Absoluta
-base_path = os.path.dirname(os.path.abspath(__file__))
-ruta_docs = os.path.join(base_path, "documents")
-
-if not os.path.exists(ruta_docs):
-    st.error(f"Error: No se encuentra la carpeta 'documents' en {base_path}")
-    st.stop()
-
+# 2. Selección de Documento
+ruta_docs = "documents"
 archivos = [f for f in os.listdir(ruta_docs) if f.endswith('.pdf')]
 if not archivos:
-    st.warning("La carpeta 'documents' está vacía o no tiene archivos PDF.")
+    st.error("No hay documentos en la carpeta 'documents'.")
     st.stop()
 
 archivo_seleccionado = st.sidebar.selectbox("Selecciona un documento:", archivos)
 ruta_completa = os.path.join(ruta_docs, archivo_seleccionado)
 ruta_indice = ruta_completa + ".idx"
+
 MARCADOR_FIJO = "###" 
 
-# 3. Sistema de Indexación (Auto-regenerable)
+# 3. Sistema de Indexación
 def obtener_indice(ruta_pdf):
-    if os.path.exists(ruta_indice): os.remove(ruta_indice)
+    if os.path.exists(ruta_indice):
+        os.remove(ruta_indice)
     
     doc = fitz.open(ruta_pdf)
     indices = []
+    
     for i, pagina in enumerate(doc):
         if MARCADOR_FIJO in pagina.get_text():
-            indices.append("Prólogo" if len(indices) == 0 else f"Capítulo {len(indices)}")
+            if len(indices) == 0:
+                indices.append("Prólogo")
+            else:
+                indices.append(f"Capítulo {len(indices)}")
     
-    if not indices: indices = ["Sin secciones marcadas"]
-    with open(ruta_indice, "w") as f: json.dump(indices, f)
+    if not indices:
+        indices = ["Sin secciones marcadas"]
+    
+    with open(ruta_indice, "w") as f:
+        json.dump(indices, f)
     return indices
 
 lista_marcadores = obtener_indice(ruta_completa)
+
+# 4. Selector de Sección
 seleccion = st.sidebar.selectbox("Elige la sección a escuchar:", lista_marcadores)
 
-# 4. Lógica de Reproducción y Evaluación
-if st.button(f"🔊 ESCUCHAR Y EVALUAR"):
-    with st.spinner("Procesando audio..."):
-        try:
-            # Aquí iría la lógica de extracción de texto que ya tienes
-            temp_file = "temp_audio.mp3"
-            
-            # (El código de generación de edge-tts iría aquí)
-            
-            if os.path.exists(temp_file):
+# 5. Lógica de Lectura
+if st.button(f"🔊 ESCUCHAR SECCIÓN"):
+    if seleccion == "Sin secciones marcadas":
+        st.warning("Este documento no contiene marcadores.")
+    else:
+        with st.spinner("Procesando audio..."):
+            try:
+                doc = fitz.open(ruta_completa)
+                idx_seleccionado = lista_marcadores.index(seleccion)
+                texto_total = ""
+                capturando = False
+                contador = 0
+                
+                for pagina in doc:
+                    texto_pag = pagina.get_text()
+                    if MARCADOR_FIJO in texto_pag:
+                        if contador == idx_seleccionado:
+                            capturando = True
+                            texto_pag = texto_pag.split(MARCADOR_FIJO)[-1]
+                        else:
+                            capturando = False
+                        contador += 1
+                    
+                    if capturando:
+                        texto_total += texto_pag
+                
+                temp_file = "temp_audio.mp3"
+                async def generar():
+                    comunicador = edge_tts.Communicate(texto_total, voz_id)
+                    await comunicador.save(temp_file)
+                asyncio.run(generar())
+                
                 st.audio(temp_file, format="audio/mp3")
                 
-                # Módulo de Evaluación (Active Recall)
-                st.subheader("🎯 Reto de 1 minuto")
-                st.info("Responde para reforzar tu memoria:")
-                if st.radio("¿Qué tema principal se trató en esta sección?", ["Normativa", "Sanción", "Procedimiento"]) == "Normativa":
-                    st.success("¡Correcto!")
-                else:
-                    st.error("Revisa el documento nuevamente.")
-            else:
-                st.warning("El audio se está generando, intenta de nuevo en un segundo.")
-        except Exception as e:
-            st.error(f"Error: {e}")
+                # CORRECCIÓN DE INDENTACIÓN AQUÍ ABAJO:
+                if os.path.exists(temp_file):
+                    os.remove(temp_file)
+                    
+            except Exception as e:
+                st.error(f"Error técnico: {e}")
 
 st.write("---")
 st.write(f"**Documento activo:** {archivo_seleccionado}")
