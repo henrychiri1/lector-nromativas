@@ -17,6 +17,10 @@ st.markdown("""
 
 st.title("📚 Lector Profesional - F.D.M.E.R.C.")
 
+# --- Inicialización de Estado ---
+if 'audio_path' not in st.session_state:
+    st.session_state.audio_path = None
+
 # 1. Configuración de Voz
 voz_id = st.sidebar.selectbox("Elige una voz:", ["es-MX-JorgeNeural", "es-MX-DaliaNeural", "es-AR-TomasNeural"])
 
@@ -25,7 +29,7 @@ base_path = os.path.dirname(os.path.abspath(__file__))
 ruta_docs = os.path.join(base_path, "documents")
 
 if not os.path.exists(ruta_docs):
-    st.error(f"No encuentro la carpeta 'documents' en: {base_path}")
+    st.error(f"Carpeta 'documents' no encontrada en: {base_path}")
     st.stop()
 
 archivos = [f for f in os.listdir(ruta_docs) if f.endswith('.pdf')]
@@ -49,7 +53,7 @@ def get_idx():
 lista = get_idx()
 seleccion = st.sidebar.selectbox("Elige sección:", lista)
 
-# 4. Extracción de Texto REAL
+# 4. Lógica de Extracción de Texto REAL
 def extraer_texto(ruta, indice):
     doc = fitz.open(ruta)
     texto = ""
@@ -70,7 +74,7 @@ def extraer_texto(ruta, indice):
 
 # 5. Interfaz de Audio y Reto
 if st.button("🔊 ESCUCHAR SECCIÓN"):
-    with st.spinner("Procesando audio real..."):
+    with st.spinner("Generando audio real..."):
         idx_num = lista.index(seleccion)
         texto_real = extraer_texto(ruta_pdf, idx_num)
         temp_file = "temp_audio.mp3"
@@ -83,23 +87,9 @@ if st.button("🔊 ESCUCHAR SECCIÓN"):
         time.sleep(1) # Espera de seguridad
         
         if os.path.exists(temp_file):
-            st.audio(temp_file, format="audio/mp3")
-            
-            # --- Módulo de Reto Educativo ---
-            st.markdown("---")
-            st.subheader("🎯 Reto de 1 minuto")
-            st.info("Responde para consolidar lo que acabas de escuchar:")
-            
-            opciones = ["Normativa", "Procedimiento", "Sanción"]
-            eleccion = st.radio("¿Qué tema principal se trató en esta sección?", opciones)
-            
-            if st.button("Verificar respuesta"):
-                if eleccion == "Normativa":
-                    st.success("¡Correcto! Has retenido la información clave.")
-                else:
-                    st.error("Incorrecto. Te sugiero repasar el inicio del audio.")
+            st.session_state.audio_path = temp_file
         else:
             st.error("Error al generar el archivo de audio.")
 
-st.write("---")
-st.write(f"**Documento activo:** {archivo_seleccionado}")
+# --- Persistencia del Audio y Reto ---
+if st.session_
