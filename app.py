@@ -3,7 +3,6 @@ import fitz
 import edge_tts
 import asyncio
 import os
-import json
 import time
 
 # Configuración inicial
@@ -19,81 +18,67 @@ st.markdown("""
 st.title("📚 Lector Profesional - F.D.M.E.R.C.")
 
 # 1. Configuración de Voz
-st.sidebar.subheader("⚙️ Configuración de Audio")
-voces = {
-    "México (Jorge)": "es-MX-JorgeNeural",
-    "México (Dalia)": "es-MX-DaliaNeural",
-    "Argentina (Tomas)": "es-AR-TomasNeural",
-    "España (Alvaro)": "es-ES-AlvaroNeural",
-    "Colombia (Gonzalo)": "es-CO-GonzaloNeural"
-}
-voz_nombre = st.sidebar.selectbox("Elige una voz:", list(voces.keys()))
-voz_id = voces[voz_nombre]
+voz_id = st.sidebar.selectbox("Elige una voz:", ["es-MX-JorgeNeural", "es-MX-DaliaNeural", "es-AR-TomasNeural"])
 
-# 2. Selección de Documento (Ruta dinámica)
+# 2. Selección de Documento
 base_path = os.path.dirname(os.path.abspath(__file__))
 ruta_docs = os.path.join(base_path, "documents")
-
-if not os.path.exists(ruta_docs):
-    st.error(f"No existe la carpeta 'documents' en la ruta: {base_path}")
-    st.stop()
-
 archivos = [f for f in os.listdir(ruta_docs) if f.endswith('.pdf')]
-if not archivos:
-    st.warning("La carpeta 'documents' está vacía.")
-    st.stop()
-
-archivo_seleccionado = st.sidebar.selectbox("Selecciona un documento:", archivos)
-ruta_completa = os.path.join(ruta_docs, archivo_seleccionado)
+archivo_sel = st.sidebar.selectbox("Selecciona un documento:", archivos)
+ruta_pdf = os.path.join(ruta_docs, archivo_sel)
 
 # 3. Indexación
-MARCADOR_FIJO = "###"
-def obtener_indice(ruta_pdf):
+MARCADOR = "###"
+def get_idx():
     doc = fitz.open(ruta_pdf)
-    indices = []
-    for i, pagina in enumerate(doc):
-        if MARCADOR_FIJO in pagina.get_text():
-            indices.append("Prólogo" if len(indices) == 0 else f"Capítulo {len(indices)}")
-    return indices if indices else ["Sin secciones marcadas"]
+    items = []
+    for i, p in enumerate(doc):
+        if MARCADOR in p.get_text():
+            items.append(f"Capítulo {len(items) + 1}")
+    return items if items else ["Sin secciones"]
 
-lista_marcadores = obtener_indice(ruta_completa)
-seleccion = st.sidebar.selectbox("Elige la sección a escuchar:", lista_marcadores)
+lista = get_idx()
+seleccion = st.sidebar.selectbox("Elige sección:", lista)
 
-# 4. Módulo de Aprendizaje Activo
-def mostrar_reto():
-    st.markdown("---")
-    st.subheader("🎯 Reto de 1 minuto")
-    st.info("Pon a prueba lo que acabas de escuchar.")
-    if st.radio("¿Qué tema principal se trató?", ["Normativa", "Procedimiento", "Sanción"]) == "Normativa":
-        st.success("¡Correcto!")
-    else:
-        st.error("Revisa el documento nuevamente.")
-
-# 5. Lógica de Lectura
-if st.button("🔊 ESCUCHAR SECCIÓN"):
-    with st.spinner("Generando audio..."):
-        try:
-            # Lógica de extracción de texto (Simplificada para asegurar funcionalidad)
-            temp_file = "temp_audio.mp3"
-            
-            # Generación de audio
-            async def generar():
-                comunicador = edge_tts.Communicate("Contenido de prueba del documento", voz_id)
-                await comunicador.save(temp_file)
-            
-            asyncio.run(generar())
-            
-            # Espera de seguridad para que el archivo termine de escribirse
-            time.sleep(1)
-            
-            if os.path.exists(temp_file):
-                st.audio(temp_file, format="audio/mp3")
-                mostrar_reto()
+# 4. Lógica de Extracción de Texto REAL
+def extraer_texto_seccion(ruta, indice_seleccionado):
+    doc = fitz.open(ruta)
+    texto_seccion = ""
+    contador = 0
+    capturando = False
+    
+    for pagina in doc:
+        texto_pag = pagina.get_text()
+        if MARCADOR in texto_pag:
+            if contador == indice_seleccionado:
+                capturando = True
+                texto_pag = texto_pag.split(MARCADOR)[-1]
             else:
-                st.error("No se pudo generar el archivo de audio.")
-                
-        except Exception as e:
-            st.error(f"Error técnico: {e}")
+                capturando = False
+            contador += 1
+        
+        if capturando:
+            texto_seccion += texto_pag
+    return texto_seccion
 
-st.write("---")
-st.write(f"**Documento activo:** {archivo_seleccionado}")
+# 5. Lógica de Reproducción
+if st.button("🔊 ESCUCHAR SECCIÓN"):
+    with st.spinner("Generando audio real..."):
+        # Extraer texto real del PDF
+        idx_num = lista.index(seleccion)
+        texto_real = extraer_texto_seccion(ruta_pdf, idx_num)
+        
+        temp_file = "temp_audio.mp3"
+        
+        # Generar audio con el texto real
+        async def generar_audio(texto, archivo_salida):
+            comunicador = edge_tts.Communicate(texto, voz_id)
+            await comunicador.save(archivo_salida)
+        
+        asyncio.run(generar_audio(texto_real, temp_file))
+        time.sleep(1)
+        
+        if os.path.exists(temp_file):
+            st.audio(temp_file, format="audio/mp3")
+            st.subheader("🎯 Reto de 1 minuto")
+            st.info("Responde para consolidar tu conocimiento.")
