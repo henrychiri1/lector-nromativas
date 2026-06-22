@@ -24,12 +24,12 @@ if 'audio_path' not in st.session_state:
 # 1. Configuración de Voz
 voz_id = st.sidebar.selectbox("Elige una voz:", ["es-MX-JorgeNeural", "es-MX-DaliaNeural", "es-AR-TomasNeural"])
 
-# 2. Selección de Documento
+# 2. Selección de Documento con Ruta Absoluta
 base_path = os.path.dirname(os.path.abspath(__file__))
 ruta_docs = os.path.join(base_path, "documents")
 
 if not os.path.exists(ruta_docs):
-    st.error(f"Carpeta 'documents' no encontrada en: {base_path}")
+    st.error(f"Error: La carpeta 'documents' no existe en {base_path}")
     st.stop()
 
 archivos = [f for f in os.listdir(ruta_docs) if f.endswith('.pdf')]
@@ -40,7 +40,7 @@ if not archivos:
 archivo_seleccionado = st.sidebar.selectbox("Selecciona un documento:", archivos)
 ruta_pdf = os.path.join(ruta_docs, archivo_seleccionado)
 
-# 3. Indexación
+# 3. Indexación (Regenerativa)
 MARCADOR = "###"
 def get_idx():
     doc = fitz.open(ruta_pdf)
@@ -53,7 +53,7 @@ def get_idx():
 lista = get_idx()
 seleccion = st.sidebar.selectbox("Elige sección:", lista)
 
-# 4. Lógica de Extracción de Texto REAL
+# 4. Extracción de Texto
 def extraer_texto(ruta, indice):
     doc = fitz.open(ruta)
     texto = ""
@@ -72,24 +72,51 @@ def extraer_texto(ruta, indice):
             texto += txt
     return texto
 
-# 5. Interfaz de Audio y Reto
-if st.button("🔊 ESCUCHAR SECCIÓN"):
-    with st.spinner("Generando audio real..."):
+# 5. Lógica de Audio (Síncrona/Controlada)
+if st.button("🔊 ESCUCHAR Y EVALUAR"):
+    with st.spinner("Generando audio..."):
+        # Limpiar archivo previo
+        temp_file = os.path.join(base_path, "temp_audio.mp3")
+        if os.path.exists(temp_file):
+            os.remove(temp_file)
+            
         idx_num = lista.index(seleccion)
         texto_real = extraer_texto(ruta_pdf, idx_num)
-        temp_file = "temp_audio.mp3"
         
         async def generar_audio(texto, archivo):
             comunicador = edge_tts.Communicate(texto, voz_id)
             await comunicador.save(archivo)
         
         asyncio.run(generar_audio(texto_real, temp_file))
-        time.sleep(1) # Espera de seguridad
         
+        # Espera activa: Verificar existencia antes de continuar
+        timeout = 10
+        while not os.path.exists(temp_file) and timeout > 0:
+            time.sleep(0.5)
+            timeout -= 1
+            
         if os.path.exists(temp_file):
             st.session_state.audio_path = temp_file
         else:
             st.error("Error al generar el archivo de audio.")
 
 # --- Persistencia del Audio y Reto ---
-if st.session_
+if st.session_state.audio_path and os.path.exists(st.session_state.audio_path):
+    st.audio(st.session_state.audio_path, format="audio/mp3")
+    
+    st.markdown("---")
+    st.subheader("🎯 Reto de 1 minuto")
+    st.info("Responde para consolidar lo que acabas de escuchar:")
+    
+    with st.form("reto_form"):
+        opciones = ["Normativa", "Procedimiento", "Sanción"]
+        eleccion = st.radio("¿Qué tema principal se trató en esta sección?", opciones)
+        
+        if st.form_submit_button("Verificar respuesta"):
+            if eleccion == "Normativa":
+                st.success("¡Correcto! Has retenido la información clave.")
+            else:
+                st.error("Incorrecto. Te sugiero repasar el inicio del audio.")
+
+st.write("---")
+st.write(f"**Documento activo:** {archivo_seleccionado}")
