@@ -5,64 +5,96 @@ import asyncio
 import os
 import time
 
+# Configuración de página
 st.set_page_config(layout="wide", page_title="Lector Profesional F.D.M.E.R.C.")
 
 # Estilos CSS
-st.markdown("""<style>.stButton>button { height: 4em !important; width: 100% !important; }</style>""", unsafe_allow_html=True)
+st.markdown("""
+    <style>
+    .stButton>button { height: 4em !important; width: 100% !important; font-size: 20px !important; font-weight: bold !important; border-radius: 10px !important; }
+    </style>
+    """, unsafe_allow_html=True)
 
 st.title("📚 Lector Profesional - F.D.M.E.R.C.")
 
-# Estado
-if 'audio_path' not in st.session_state: st.session_state.audio_path = None
+# --- Inicialización de Estado ---
 if 'puntos' not in st.session_state: st.session_state.puntos = 0
+if 'audio_path' not in st.session_state: st.session_state.audio_path = None
 
-# Configuración
-ruta_docs = os.path.join(os.path.dirname(os.path.abspath(__file__)), "documents")
+# 1. Configuración de Voz
+voz_id = st.sidebar.selectbox("Elige una voz:", ["es-MX-JorgeNeural", "es-MX-DaliaNeural", "es-AR-TomasNeural"])
+
+# 2. Selección de Documento
+base_path = os.path.dirname(os.path.abspath(__file__))
+ruta_docs = os.path.join(base_path, "documents")
 archivos = [f for f in os.listdir(ruta_docs) if f.endswith('.pdf')] if os.path.exists(ruta_docs) else []
-archivo_sel = st.sidebar.selectbox("Documento:", archivos) if archivos else None
 
-if archivo_sel:
-    ruta_pdf = os.path.join(ruta_docs, archivo_sel)
+if not archivos:
+    st.error("No hay archivos PDF en la carpeta 'documents'.")
+    st.stop()
+
+archivo_seleccionado = st.sidebar.selectbox("Selecciona un documento:", archivos)
+ruta_pdf = os.path.join(ruta_docs, archivo_seleccionado)
+
+# 3. Indexación basada en ### (Prólogo + Capítulos)
+def obtener_indice(ruta):
+    doc = fitz.open(ruta)
+    texto_total = "".join([p.get_text() for p in doc])
+    partes = texto_total.split("###")
+    indices = ["Prólogo"] + [f"Capítulo {i}" for i in range(1, len(partes))]
+    return indices, partes
+
+lista_nombres, lista_texto = obtener_indice(ruta_pdf)
+seleccion = st.sidebar.selectbox("Elige la sección a escuchar:", lista_nombres)
+idx_seleccionado = lista_nombres.index(seleccion)
+
+# 4. Generación de Audio Segmentada (Anti-corte)
+def generar_audio_robusto(texto, archivo_salida):
+    # Dividir en bloques de 2000 caracteres
+    segmentos = [texto[i:i+2000] for i in range(0, len(texto), 2000)]
+    archivos_temp = []
     
-    # Lógica de extracción infalible
-    def extraer_todo_el_texto(ruta):
-        doc = fitz.open(ruta)
-        return "\n".join([p.get_text() for p in doc])
-
-    texto_completo = extraer_todo_el_texto(ruta_pdf)
-    # Dividimos por el marcador, pero si no hay, devolvemos el texto completo
-    partes = texto_completo.split("###")
+    for i, seg in enumerate(segmentos):
+        temp_seg = f"temp_seg_{i}.mp3"
+        comunicador = edge_tts.Communicate(seg, voz_id)
+        asyncio.run(comunicador.save(temp_seg))
+        archivos_temp.append(temp_seg)
     
-    # Crear índice dinámico
-    opciones_indice = [f"Sección {i}" for i in range(len(partes))]
-    seleccion = st.sidebar.selectbox("Elige sección:", opciones_indice)
-    idx_num = int(seleccion.split(" ")[1])
+    # Unir archivos binarios
+    with open(archivo_salida, 'wb') as outfile:
+        for fname in archivos_temp:
+            with open(fname, 'rb') as infile:
+                outfile.write(infile.read())
+            os.remove(fname)
 
-    # Interfaz
-    col1, col2 = st.columns(2)
-    with col1:
-        if st.button("🔊 ESCUCHAR Y EVALUAR"):
-            texto_a_leer = partes[idx_num] if len(partes) > idx_num else texto_completo
-            temp_file = "temp_audio.mp3"
-            
-            async def generar():
-                comunicador = edge_tts.Communicate(texto_a_leer[:2000], "es-MX-JorgeNeural") # Limitado para evitar bloqueos
-                await comunicador.save(temp_file)
-            
-            asyncio.run(generar())
-            time.sleep(1)
+# 5. Interfaz Principal
+col_audio, col_quiz = st.columns([1, 1])
+
+with col_audio:
+    if st.button("🔊 ESCUCHAR Y EVALUAR"):
+        with st.spinner("Generando audio completo..."):
+            texto_a_leer = lista_texto[idx_seleccionado]
+            temp_file = os.path.join(base_path, "final_audio.mp3")
+            generar_audio_robusto(texto_a_leer, temp_file)
             st.session_state.audio_path = temp_file
 
-        if st.session_state.audio_path and os.path.exists(st.session_state.audio_path):
-            st.audio(st.session_state.audio_path, format="audio/mp3")
+    if st.session_state.audio_path and os.path.exists(st.session_state.audio_path):
+        st.audio(st.session_state.audio_path, format="audio/mp3")
 
-    with col2:
-        st.subheader("🎯 Reto de 1 minuto")
-        with st.form("quiz"):
-            respuesta = st.radio("¿Qué tema principal se trató?", ["Normativa", "Procedimiento", "Sanción"])
-            if st.form_submit_button("Verificar"):
+with col_quiz:
+    st.subheader("🏆 Tablero de Desafío")
+    st.metric("Puntuación acumulada", st.session_state.puntos)
+    st.markdown("---")
+    
+    with st.form("quiz_form"):
+        eleccion = st.radio("¿Qué tema principal se trató en esta sección?", ["Normativa", "Procedimiento", "Sanción"])
+        if st.form_submit_button("Verificar respuesta"):
+            if eleccion == "Normativa":
                 st.session_state.puntos += 10
-                st.success(f"¡Correcto! Puntos: {st.session_state.puntos}")
+                st.success("¡Correcto! +10 puntos")
+                st.balloons()
+            else:
+                st.error("Incorrecto. Intenta nuevamente.")
 
-else:
-    st.error("No se encontraron PDFs en la carpeta 'documents'.")
+st.write("---")
+st.write(f"**Documento activo:** {archivo_seleccionado}")
