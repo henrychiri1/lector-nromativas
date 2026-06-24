@@ -58,11 +58,22 @@ for archivo in archivos:
     texto_total = "".join([p.get_text() for p in doc])
     secciones = texto_total.split("###")
     
-    cols = st.columns(3) 
+    # --- ORDENAMIENTO DE BOTONES PARA EVITAR EL DESORDEN EN CELULARES ---
+    lista_ordenada = []
     for i, texto in enumerate(secciones):
-        nombre = "Prólogo" if i == 0 else f"Capítulo {i}"
+        # Usamos formato numérico :02d para que 10 sea mayor que 02 y se ordenen bien
+        nombre = "Prólogo" if i == 0 else f"Capítulo {i:02d}"
+        lista_ordenada.append((nombre, texto))
+    
+    # Ordenamos alfabéticamente
+    lista_ordenada.sort()
+    
+    cols = st.columns(3) 
+    for i, (nombre, texto) in enumerate(lista_ordenada):
         with cols[i % 3]:
-            if st.button(f"▶️ {nombre}", key=f"{archivo}_{i}", use_container_width=True):
+            # Convertimos el nombre para mostrarlo bonito (quitando el 0 del 01)
+            display_name = nombre.replace("Capítulo 0", "Capítulo ").replace("Capítulo ", "Capítulo ")
+            if st.button(f"▶️ {display_name}", key=f"{archivo}_{nombre}", use_container_width=True):
                 temp_file = "current_audio.mp3"
                 with st.spinner("Generando audio..."):
                     async def gen():
