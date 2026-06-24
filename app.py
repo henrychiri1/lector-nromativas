@@ -58,26 +58,24 @@ for archivo in archivos:
     texto_total = "".join([p.get_text() for p in doc])
     secciones = texto_total.split("###")
     
-    # --- ORDENAMIENTO DE BOTONES PARA EVITAR EL DESORDEN EN CELULARES ---
+    # ORDENAMIENTO
     lista_ordenada = []
     for i, texto in enumerate(secciones):
-        # Usamos formato numérico :02d para que 10 sea mayor que 02 y se ordenen bien
         nombre = "Prólogo" if i == 0 else f"Capítulo {i:02d}"
         lista_ordenada.append((nombre, texto))
     
-    # Ordenamos alfabéticamente
     lista_ordenada.sort()
     
     cols = st.columns(3) 
     for i, (nombre, texto) in enumerate(lista_ordenada):
         with cols[i % 3]:
-            # Convertimos el nombre para mostrarlo bonito (quitando el 0 del 01)
             display_name = nombre.replace("Capítulo 0", "Capítulo ").replace("Capítulo ", "Capítulo ")
             if st.button(f"▶️ {display_name}", key=f"{archivo}_{nombre}", use_container_width=True):
                 temp_file = "current_audio.mp3"
-                with st.spinner("Generando audio..."):
+                # Ahora leemos el texto completo sin el [:3500]
+                with st.spinner("Generando audio completo, espera un momento..."):
                     async def gen():
-                        comunicador = edge_tts.Communicate(texto[:3500], "es-MX-JorgeNeural")
+                        comunicador = edge_tts.Communicate(texto, "es-MX-JorgeNeural")
                         await comunicador.save(temp_file)
                     asyncio.run(gen())
                 st.session_state.last_audio = temp_file
