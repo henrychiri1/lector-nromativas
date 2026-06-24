@@ -24,31 +24,26 @@ if 'visits' not in st.session_state:
 # --- INTERFAZ PRINCIPAL ---
 st.markdown("<h1 style='text-align: center; color: #FF4B4B;'>📚 Preparación Ascenso 2026</h1>", unsafe_allow_html=True)
 
-# BLOQUE DE COLABORACIÓN (Diseño forzado para modo oscuro/claro)
-st.markdown("""
-    <div style='background-color: #fdf2f2; padding: 20px; border-radius: 10px; border: 2px solid #ffcccc; margin-bottom: 20px; color: #000000 !important;'>
-        <h3 style='color: #d32f2f; margin-top: 0;'>🤝 ¡Apoya nuestra labor educativa!</h3>
-        <p style='font-size: 15px; color: #000000 !important;'>
-            Creemos que la educación debe ser accesible para todos. Si este recurso te ayuda, 
-            <b>una colaboración voluntaria de 10 Bs</b> nos permite seguir mejorando esta plataforma para que más maestros alcancen su ascenso.
-        </p>
-    </div>
-    """, unsafe_allow_html=True)
-
-# Carga de imagen con validación de existencia
-if os.path.exists("QR.jpeg"):
-    st.image("QR.jpeg", width=250, caption="Escanea para colaborar")
+# BLOQUE DE COLABORACIÓN: Imagen de alto impacto
+if os.path.exists("mensaje logo.png"):
+    st.image("mensaje logo.png", use_container_width=True)
 else:
-    st.error("Error: La imagen 'QR.jpeg' no está en el servidor. Súbela a la carpeta raíz.")
+    st.error("Error: La imagen 'mensaje logo.png' no está en el servidor.")
+
+# QR (Debajo de la imagen)
+if os.path.exists("QR.jpeg"):
+    st.image("QR.jpeg", width=250, caption="Escanea para colaborar con 10 Bs")
+else:
+    st.warning("Imagen 'QR.jpeg' no encontrada.")
 
 st.markdown("---")
 
-# Reproductor (Siempre visible)
+# Reproductor
 st.subheader("🎧 Reproductor de Audio")
 if 'last_audio' in st.session_state and st.session_state.last_audio:
     st.audio(st.session_state.last_audio, format="audio/mp3")
 else:
-    st.info("Selecciona un capítulo abajo para comenzar la reproducción.")
+    st.info("Selecciona un capítulo abajo para comenzar.")
 
 st.markdown("---")
 
