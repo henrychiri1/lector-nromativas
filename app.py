@@ -11,7 +11,9 @@ st.set_page_config(layout="wide", page_title="Plataforma de Ascenso F.D.M.E.R.C.
 VISITS_FILE = "visits.txt"
 def get_visits():
     if not os.path.exists(VISITS_FILE): return 0
-    with open(VISITS_FILE, "r") as f: return int(f.read())
+    with open(VISITS_FILE, "r") as f: 
+        try: return int(f.read())
+        except: return 0
 
 def increment_visits():
     v = get_visits() + 1
@@ -21,7 +23,7 @@ def increment_visits():
 if 'visits' not in st.session_state:
     st.session_state.visits = increment_visits()
 
-# --- BARRA LATERAL FIJA (Audio + Colaboración) ---
+# --- BARRA LATERAL FIJA ---
 with st.sidebar:
     st.header("🎧 Panel de Reproducción")
     if 'last_audio' in st.session_state and st.session_state.last_audio:
@@ -31,17 +33,20 @@ with st.sidebar:
         st.info("Selecciona un capítulo para comenzar.")
     
     st.markdown("---")
-    st.subheader("🤝 Apoya nuestro proyecto")
-    st.write("Creemos firmemente que la educación debe ser accesible para todos. Con una colaboración voluntaria de 10 Bs, nos ayudas a fortalecer esta comunidad.")
-    st.image("QR.jpeg", use_container_width=True) # Asegúrate que el archivo esté en la carpeta
+    st.subheader("🤝 Un esfuerzo compartido")
+    st.write("Creemos firmemente que la educación debe ser accesible para todos. Con una colaboración voluntaria de 10 Bs, nos ayudas a fortalecer esta comunidad y a construir mejores herramientas para el magisterio.")
+    st.image("QR.jpeg", use_container_width=True)
     st.markdown("---")
-    st.write(f"📊 Consultas: {st.session_state.visits}")
+    st.write(f"📊 Consultas realizadas: {st.session_state.visits}")
 
-# --- CUERPO PRINCIPAL (Lista de Libros) ---
+# --- CUERPO PRINCIPAL ---
 st.markdown("<h1 style='color: #FF4B4B;'>📚 Preparación Ascenso 2026</h1>", unsafe_allow_html=True)
 
+# Instrucciones
+st.success("Instrucciones: Selecciona el libro y haz clic en cualquier capítulo. El audio se cargará automáticamente.")
+
 ruta_docs = os.path.join(os.path.dirname(os.path.abspath(__file__)), "documents")
-archivos = [f for f in os.listdir(ruta_docs) if f.endswith('.pdf')]
+archivos = [f for f in os.listdir(ruta_docs) if f.endswith('.pdf')] if os.path.exists(ruta_docs) else []
 
 # Contenedor con scroll para los libros
 with st.container(height=600):
@@ -53,12 +58,15 @@ with st.container(height=600):
         secciones = texto_total.split("###")
         
         for i, texto in enumerate(secciones):
+            # Lógica de nombre: Prólogo para el primero, Capítulo X para los demás
             nombre = "Prólogo" if i == 0 else f"Capítulo {i}"
             if st.button(f"▶️ {nombre}", key=f"{archivo}_{i}"):
                 temp_file = "current_audio.mp3"
-                async def gen():
-                    comunicador = edge_tts.Communicate(texto[:3000], "es-MX-JorgeNeural")
-                    await comunicador.save(temp_file)
-                asyncio.run(gen())
+                with st.spinner("Generando audio..."):
+                    async def gen():
+                        # Generación robusta
+                        comunicador = edge_tts.Communicate(texto[:3500], "es-MX-JorgeNeural")
+                        await comunicador.save(temp_file)
+                    asyncio.run(gen())
                 st.session_state.last_audio = temp_file
                 st.rerun()
