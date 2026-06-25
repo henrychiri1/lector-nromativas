@@ -30,11 +30,21 @@ if os.path.exists("mensaje logo.png"):
 else:
     st.error("Error: La imagen 'mensaje logo.png' no está en el servidor.")
 
-# QR (Debajo de la imagen)
-if os.path.exists("QR.jpeg"):
-    st.image("QR.jpeg", width=250, caption="Escanea para colaborar con 10 Bs")
-else:
-    st.warning("Imagen 'QR.jpeg' no encontrada.")
+# --- SECCIÓN AVAL Y QR (NUEVO DISEÑO) ---
+col1, col2 = st.columns(2)
+
+with col1:
+    if os.path.exists("QR.jpeg"):
+        st.image("QR.jpeg", caption="Escanea para colaborar con 10 Bs", use_container_width=True)
+    else:
+        st.warning("QR no encontrado.")
+
+with col2:
+    if os.path.exists("logo_fdmerc.png"):
+        st.image("logo_fdmerc.png", use_container_width=True)
+        st.markdown("<h4 style='text-align: center; color: #1f77b4;'>Con el aval oficial de la F.D.M.E.R.C.</h4>", unsafe_allow_html=True)
+    else:
+        st.warning("Logo F.D.M.E.R.C. no encontrado.")
 
 st.markdown("---")
 
@@ -72,7 +82,6 @@ for archivo in archivos:
             display_name = nombre.replace("Capítulo 0", "Capítulo ").replace("Capítulo ", "Capítulo ")
             if st.button(f"▶️ {display_name}", key=f"{archivo}_{nombre}", use_container_width=True):
                 temp_file = "current_audio.mp3"
-                # Ahora leemos el texto completo sin el [:3500]
                 with st.spinner("Generando audio completo, espera un momento..."):
                     async def gen():
                         comunicador = edge_tts.Communicate(texto, "es-MX-JorgeNeural")
