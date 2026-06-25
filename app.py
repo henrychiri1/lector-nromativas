@@ -30,21 +30,21 @@ if os.path.exists("mensaje logo.png"):
 else:
     st.error("Error: La imagen 'mensaje logo.png' no está en el servidor.")
 
-# --- SECCIÓN AVAL Y QR (NUEVO DISEÑO) ---
+# --- SECCIÓN AVAL Y QR ---
 col1, col2 = st.columns(2)
 
 with col1:
     if os.path.exists("QR.jpeg"):
         st.image("QR.jpeg", caption="Escanea para colaborar con 10 Bs", use_container_width=True)
     else:
-        st.warning("QR no encontrado.")
+        st.warning("QR.jpeg no encontrado.")
 
 with col2:
-    if os.path.exists("logo_fdmerc.png"):
-        st.image("logo_fdmerc.png", use_container_width=True)
+    if os.path.exists("logo.jpeg"):
+        st.image("logo.jpeg", use_container_width=True)
         st.markdown("<h4 style='text-align: center; color: #1f77b4;'>Con el aval oficial de la F.D.M.E.R.C.</h4>", unsafe_allow_html=True)
     else:
-        st.warning("Logo F.D.M.E.R.C. no encontrado.")
+        st.warning("logo.jpeg no encontrado.")
 
 st.markdown("---")
 
