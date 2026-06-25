@@ -19,13 +19,24 @@ if os.path.exists("mensaje logo.png"):
 
 st.markdown("---")
 
+# --- LÓGICA DE DIAGNÓSTICO Y LISTADO ---
+ruta_audios = os.path.join(os.path.dirname(os.path.abspath(__file__)), "audios")
+
+# Diagnóstico visual para ti (solo visible para admin)
+if es_admin:
+    st.sidebar.info(f"Ruta detectada: {ruta_audios}")
+    if os.path.exists(ruta_audios):
+        archivos_totales = os.listdir(ruta_audios)
+        st.sidebar.success(f"Archivos en carpeta: {len(archivos_totales)}")
+    else:
+        st.sidebar.error("La carpeta 'audios' NO existe en el servidor.")
+
 # --- LÓGICA DE REPRODUCTOR ---
 st.subheader("Reproductor de Audio")
 
 if 'audio_a_reproducir' not in st.session_state:
     st.session_state.audio_a_reproducir = None
 
-# Verifica existencia antes de reproducir
 if st.session_state.audio_a_reproducir and os.path.exists(st.session_state.audio_a_reproducir):
     with open(st.session_state.audio_a_reproducir, "rb") as f:
         b64_audio = base64.b64encode(f.read()).decode()
@@ -35,28 +46,14 @@ if st.session_state.audio_a_reproducir and os.path.exists(st.session_state.audio
         <source src="data:audio/mp3;base64,{b64_audio}" type="audio/mp3">
     </audio>
     ''', unsafe_html=True)
-
-    if es_admin:
-        with open(st.session_state.audio_a_reproducir, "rb") as file:
-            st.download_button("Descargar este audio (Admin)", data=file, 
-                               file_name=os.path.basename(st.session_state.audio_a_reproducir))
 else:
-    st.info("Selecciona un audio de la lista inferior.")
+    st.info("Selecciona un audio de la lista.")
 
-st.markdown("---")
-
-# --- LISTA DE AUDIOS (BLINDADA) ---
-# Usamos una ruta absoluta relativa al archivo actual
-ruta_base = os.path.dirname(os.path.abspath(__file__))
-ruta_audios = os.path.join(ruta_base, "audios")
-
-if not os.path.exists(ruta_audios):
-    st.warning(f"⚠️ La carpeta 'audios' no existe en: {ruta_base}")
-    st.write("Crea la carpeta 'audios' en tu repositorio de GitHub y sube al menos un archivo .mp3.")
-else:
+# --- LISTA DE REPRODUCCIÓN ---
+if os.path.exists(ruta_audios):
     archivos = [f for f in os.listdir(ruta_audios) if f.endswith('.mp3')]
     if not archivos:
-        st.warning("La carpeta 'audios' está vacía.")
+        st.warning("La carpeta 'audios' está vacía o no contiene archivos .mp3.")
     else:
         for arch in sorted(archivos):
             if st.button(f"Reproducir: {arch.replace('.mp3', '')}", key=arch):
@@ -66,13 +63,18 @@ else:
 # --- PANEL ADMIN ---
 if es_admin:
     st.sidebar.markdown("---")
-    st.sidebar.subheader("Panel Admin")
+    st.sidebar.subheader("⚙️ Panel de Administrador")
     if os.path.exists(ruta_audios):
-        if st.sidebar.button("Comprimir biblioteca"):
+        if st.sidebar.button("📦 Comprimir y Descargar biblioteca"):
             zip_buffer = io.BytesIO()
             with zipfile.ZipFile(zip_buffer, "w") as zf:
                 for arch in os.listdir(ruta_audios):
                     if arch.endswith(".mp3"):
                         zf.write(os.path.join(ruta_audios, arch), arch)
-            st.sidebar.download_button("Descargar ZIP", data=zip_buffer.getvalue(), 
-                                       file_name="biblioteca.zip", mime="application/zip")
+            
+            # Solo descarga si el zip tiene contenido
+            if zip_buffer.tell() > 8:
+                st.sidebar.download_button("✅ Descargar ZIP", data=zip_buffer.getvalue(), 
+                                           file_name="biblioteca.zip", mime="application/zip")
+            else:
+                st.sidebar.error("El ZIP está vacío. Verifica que haya archivos .mp3 en la carpeta.")
