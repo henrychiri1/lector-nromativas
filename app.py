@@ -3,14 +3,14 @@ import fitz
 import edge_tts
 import asyncio
 import os
+import base64
 
-# --- CONFIGURACIÓN Y SEGURIDAD ---
+# Configuración de página
 st.set_page_config(layout="centered", page_title="Plataforma de Ascenso F.D.M.E.R.C.")
 
-# Define tu clave secreta aquí (¡cámbiala por algo que solo tú sepas!)
+# --- LÓGICA DE ADMINISTRADOR ---
+# Cambia 'mi_clave_secreta_2026' por tu clave privada
 CLAVE_ADMIN = "mi_clave_secreta_2026" 
-
-# Verifica si el usuario es admin mediante la URL
 query_params = st.query_params
 es_admin = query_params.get("admin") == CLAVE_ADMIN
 
@@ -46,16 +46,25 @@ with col2:
 
 st.markdown("---")
 
-# Reproductor
+# --- REPRODUCTOR PERSONALIZADO SIN DESCARGA ---
 st.subheader("🎧 Reproductor de Audio")
 if 'last_audio' in st.session_state and st.session_state.last_audio:
-    st.audio(st.session_state.last_audio, format="audio/mp3")
+    with open(st.session_state.last_audio, "rb") as f:
+        data = f.read()
+        b64 = base64.b64encode(data).decode()
     
-    # --- BOTÓN DE DESCARGA (SOLO PARA ADMIN) ---
+    html_audio = f'''
+    <audio controls controlsList="nodownload" style="width: 100%;">
+        <source src="data:audio/mp3;base64,{b64}" type="audio/mp3">
+    </audio>
+    '''
+    st.markdown(html_audio, unsafe_allow_html=True)
+
+    # BOTÓN DE DESCARGA (SOLO PARA ADMIN)
     if es_admin:
         with open(st.session_state.last_audio, "rb") as file:
             st.download_button(
-                label="📥 DESCARGAR AUDIO (Solo para Admin)",
+                label="📥 DESCARGAR AUDIO (Solo Admin)",
                 data=file,
                 file_name="audio_ascenso.mp3",
                 mime="audio/mp3"
