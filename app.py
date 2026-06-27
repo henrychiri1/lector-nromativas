@@ -1,23 +1,48 @@
 import streamlit as st
+import os
 
 # Configuración de página
-st.set_page_config(page_title="Preparación Ascenso 2026", layout="centered")
+st.set_page_config(layout="centered", page_title="Plataforma de Ascenso F.D.M.E.R.C.")
 
-# --- TÍTULO Y ELEMENTOS GRÁFICOS ---
-st.title("📚 Preparación Ascenso 2026")
+# --- LÓGICA DE CONTADOR (MANTENIDA) ---
+VISITS_FILE = "visits.txt"
+def increment_visits():
+    v = 0
+    if os.path.exists(VISITS_FILE):
+        with open(VISITS_FILE, "r") as f:
+            try: v = int(f.read())
+            except: v = 0
+    with open(VISITS_FILE, "w") as f: f.write(str(v + 1))
+    return v + 1
 
-# Reinsertamos tus elementos gráficos (Asegúrate de que los archivos estén en tu repo)
-# st.image("tu_banner_principal.png") 
-# st.image("tu_qr.png") 
-# st.image("tu_logo_fdmerc.png")
+if 'visits' not in st.session_state:
+    st.session_state.visits = increment_visits()
+
+# --- INTERFAZ PRINCIPAL (TU DISEÑO ORIGINAL) ---
+st.markdown("<h1 style='text-align: center; color: #FF4B4B;'>📚 Preparación Ascenso 2026</h1>", unsafe_allow_html=True)
+
+# Imagen de cabecera
+if os.path.exists("mensaje logo.png"):
+    st.image("mensaje logo.png", use_container_width=True)
+
+# --- SECCIÓN AVAL Y QR ---
+col1, col2 = st.columns(2)
+with col1:
+    if os.path.exists("QR.jpeg"):
+        st.image("QR.jpeg", caption="Escanea para colaborar con 10 Bs", use_container_width=True)
+with col2:
+    if os.path.exists("logo.jpeg"):
+        st.image("logo.jpeg", use_container_width=True)
+        st.markdown("<h4 style='text-align: center; color: #1f77b4;'>Con el aval oficial de la F.D.M.E.R.C.</h4>", unsafe_allow_html=True)
 
 st.markdown("---")
 
+# --- REPRODUCTOR DE AUDIO (NUEVA LÓGICA) ---
 st.header("🎧 Reproductor de Audio")
 st.write("Selecciona un audio completo abajo para comenzar.")
 
-# --- DICCIONARIO DE AUDIOS COMPLETOS ---
-libros = {
+# Diccionario de audios completos
+audios = {
     "Neurociencia Neuroaprendizaje completo": "https://archive.org/download/neurociencia-neuroaprendizaje-completo/Neurociencia%20Neuroaprendizaje_completo.mp3",
     "REGLAMENTO DE FALTAS Y SANCIONES completo": "https://archive.org/download/reglamento-de-faltas-y-sanciones-completo/REGLAMENTO%20DE%20FALTAS%20Y%20SANCIONES_completo.mp3",
     "REGLAMENTO DEL ESCALAFÓN NACIONAL DEL SERVICIO DE EDUCACIÓN completo": "https://archive.org/download/reglamento-del-escalafo-n-nacional-del-servicio-de-educacio-n-completo/REGLAMENTO%20DEL%20ESCALAF%C3%93N%20NACIONAL%20DEL%20SERVICIO%20DE%20EDUCACI%C3%93N_completo.mp3",
@@ -26,10 +51,13 @@ libros = {
     "Diseño, desarrollo e innovación del currículum completo": "https://archive.org/download/diseno-desarrollo-e-innovacion-del-curriculum-completo_202606/Dise%C3%B1o%2C%20desarrollo%20e%20innovaci%C3%B3n%20del%20curr%C3%ADculum_completo.mp3"
 }
 
-# --- GENERADOR DE BOTONES ---
-# Ahora cada botón carga directamente el audio completo
-for titulo, url in libros.items():
-    # Usamos el título completo como etiqueta del botón y como llave única
-    if st.button(titulo, key=titulo):
-        st.audio(url)
+# Lógica para mostrar botones y reproducir
+for titulo, url in audios.items():
+    if st.button(titulo, key=titulo, use_container_width=True):
+        st.session_state.selected_audio = url
     st.markdown("---")
+
+if 'selected_audio' in st.session_state:
+    st.audio(st.session_state.selected_audio, format="audio/mp3")
+
+st.sidebar.write(f"📊 Consultas totales: {st.session_state.visits}")
