@@ -4,7 +4,7 @@ import os
 # Configuración de página
 st.set_page_config(layout="centered", page_title="Plataforma de Ascenso F.D.M.E.R.C.")
 
-# --- LÓGICA DE CONTADOR (MANTENIDA) ---
+# --- LÓGICA DE CONTADOR ---
 VISITS_FILE = "visits.txt"
 def increment_visits():
     v = 0
@@ -18,14 +18,12 @@ def increment_visits():
 if 'visits' not in st.session_state:
     st.session_state.visits = increment_visits()
 
-# --- INTERFAZ PRINCIPAL (TU DISEÑO ORIGINAL) ---
+# --- INTERFAZ PRINCIPAL ---
 st.markdown("<h1 style='text-align: center; color: #FF4B4B;'>📚 Preparación Ascenso 2026</h1>", unsafe_allow_html=True)
 
-# Imagen de cabecera
 if os.path.exists("mensaje logo.png"):
     st.image("mensaje logo.png", use_container_width=True)
 
-# --- SECCIÓN AVAL Y QR ---
 col1, col2 = st.columns(2)
 with col1:
     if os.path.exists("QR.jpeg"):
@@ -37,11 +35,10 @@ with col2:
 
 st.markdown("---")
 
-# --- REPRODUCTOR DE AUDIO (NUEVA LÓGICA) ---
 st.header("🎧 Reproductor de Audio")
-st.write("Selecciona un audio completo abajo para comenzar.")
+st.write("Selecciona un audio para comenzar.")
 
-# Diccionario de audios completos
+# --- DICCIONARIO DE AUDIOS COMPLETOS ---
 audios = {
     "Neurociencia Neuroaprendizaje completo": "https://archive.org/download/neurociencia-neuroaprendizaje-completo/Neurociencia%20Neuroaprendizaje_completo.mp3",
     "REGLAMENTO DE FALTAS Y SANCIONES completo": "https://archive.org/download/reglamento-de-faltas-y-sanciones-completo/REGLAMENTO%20DE%20FALTAS%20Y%20SANCIONES_completo.mp3",
@@ -51,13 +48,11 @@ audios = {
     "Diseño, desarrollo e innovación del currículum completo": "https://archive.org/download/diseno-desarrollo-e-innovacion-del-curriculum-completo_202606/Dise%C3%B1o%2C%20desarrollo%20e%20innovaci%C3%B3n%20del%20curr%C3%ADculum_completo.mp3"
 }
 
-# Lógica para mostrar botones y reproducir
+# --- GENERADOR DE BOTONES CON REPRODUCTOR INTEGRADO ---
 for titulo, url in audios.items():
-    if st.button(titulo, key=titulo, use_container_width=True):
-        st.session_state.selected_audio = url
+    st.subheader(titulo) # Título del libro
+    if st.button("Reproducir Audio Completo", key=f"btn_{titulo}"):
+        st.audio(url, format="audio/mp3") # El reproductor aparece justo aquí
     st.markdown("---")
-
-if 'selected_audio' in st.session_state:
-    st.audio(st.session_state.selected_audio, format="audio/mp3")
 
 st.sidebar.write(f"📊 Consultas totales: {st.session_state.visits}")
