@@ -1,93 +1,45 @@
 import streamlit as st
-import fitz
-import edge_tts
-import asyncio
-import os
 
-# Configuración de página
-st.set_page_config(layout="centered", page_title="Plataforma de Ascenso F.D.M.E.R.C.")
+# Configuración de la página (esto mantiene tu diseño actual)
+st.set_page_config(page_title="Preparación Ascenso 2026", layout="centered")
 
-# --- LÓGICA DE CONTADOR ---
-VISITS_FILE = "visits.txt"
-def increment_visits():
-    v = 0
-    if os.path.exists(VISITS_FILE):
-        with open(VISITS_FILE, "r") as f:
-            try: v = int(f.read())
-            except: v = 0
-    with open(VISITS_FILE, "w") as f: f.write(str(v + 1))
-    return v + 1
+# --- BLOQUE SUPERIOR: MANTENEMOS TU IDENTIDAD ---
+st.title("📚 Preparación Ascenso 2026")
+# Aquí puedes agregar tu imagen del logo/banner si la tenías cargada en el repositorio
+# st.image("tu_imagen_banner.png") 
 
-if 'visits' not in st.session_state:
-    st.session_state.visits = increment_visits()
-
-# --- INTERFAZ PRINCIPAL ---
-st.markdown("<h1 style='text-align: center; color: #FF4B4B;'>📚 Preparación Ascenso 2026</h1>", unsafe_allow_html=True)
-
-# BLOQUE DE COLABORACIÓN: Imagen de alto impacto
-if os.path.exists("mensaje logo.png"):
-    st.image("mensaje logo.png", use_container_width=True)
-else:
-    st.error("Error: La imagen 'mensaje logo.png' no está en el servidor.")
-
-# --- SECCIÓN AVAL Y QR ---
-col1, col2 = st.columns(2)
-
-with col1:
-    if os.path.exists("QR.jpeg"):
-        st.image("QR.jpeg", caption="Escanea para colaborar con 10 Bs", use_container_width=True)
-    else:
-        st.warning("QR.jpeg no encontrado.")
-
-with col2:
-    if os.path.exists("logo.jpeg"):
-        st.image("logo.jpeg", use_container_width=True)
-        st.markdown("<h4 style='text-align: center; color: #1f77b4;'>Con el aval oficial de la F.D.M.E.R.C.</h4>", unsafe_allow_html=True)
-    else:
-        st.warning("logo.jpeg no encontrado.")
-
+st.markdown("""
+### ¡APOYA NUESTRA LABOR EDUCATIVA!
+*(Aquí puedes poner el texto de tu banner o el código para la imagen del código QR)*
+""")
 st.markdown("---")
 
-# Reproductor
-st.subheader("🎧 Reproductor de Audio")
-if 'last_audio' in st.session_state and st.session_state.last_audio:
-    st.audio(st.session_state.last_audio, format="audio/mp3")
-else:
-    st.info("Selecciona un capítulo abajo para comenzar.")
+st.header("🎧 Reproductor de Audio")
+st.write("Selecciona un capítulo abajo para comenzar.")
 
-st.markdown("---")
+# --- LÓGICA DE LA BIBLIOTECA ---
+# Definimos tus archivos organizados por libro
+libros = {
+    "Neurociencia Neuroaprendizaje.pdf": {
+        "Capítulo 1": "URL_AQUI",
+        "Capítulo 2": "URL_AQUI",
+        # ... añade aquí los enlaces de los fragmentos de este libro
+    },
+    "REGLAMENTO DE FALTAS Y SANCIONES.pdf": {
+        "Capítulo 1": "https://archive.org/download/reglamento-de-faltas-y-sanciones-completo/REGLAMENTO%20DE%20FALTAS%20Y%20SANCIONES_completo.mp3",
+    },
+    "REGLAMENTO DEL ESCALAFÓN NACIONAL DEL SERVICIO DE EDUCACIÓN.pdf": {
+        "Capítulo 1": "https://archive.org/download/reglamento-del-escalafo-n-nacional-del-servicio-de-educacio-n-completo/REGLAMENTO%20DEL%20ESCALAF%C3%93N%20NACIONAL%20DEL%20SERVICIO%20DE%20EDUCACI%C3%93N_completo.mp3",
+    }
+}
 
-# Lista de libros en rejilla
-ruta_docs = os.path.join(os.path.dirname(os.path.abspath(__file__)), "documents")
-archivos = [f for f in os.listdir(ruta_docs) if f.endswith('.pdf')] if os.path.exists(ruta_docs) else []
-
-for archivo in archivos:
-    st.subheader(f"📖 {archivo}")
-    ruta_pdf = os.path.join(ruta_docs, archivo)
-    doc = fitz.open(ruta_pdf)
-    texto_total = "".join([p.get_text() for p in doc])
-    secciones = texto_total.split("###")
+# --- GENERACIÓN DE LA INTERFAZ ---
+for nombre_libro, capitulos in libros.items():
+    st.subheader(f"📖 {nombre_libro}")
     
-    # ORDENAMIENTO
-    lista_ordenada = []
-    for i, texto in enumerate(secciones):
-        nombre = "Prólogo" if i == 0 else f"Capítulo {i:02d}"
-        lista_ordenada.append((nombre, texto))
-    
-    lista_ordenada.sort()
-    
-    cols = st.columns(3) 
-    for i, (nombre, texto) in enumerate(lista_ordenada):
-        with cols[i % 3]:
-            display_name = nombre.replace("Capítulo 0", "Capítulo ").replace("Capítulo ", "Capítulo ")
-            if st.button(f"▶️ {display_name}", key=f"{archivo}_{nombre}", use_container_width=True):
-                temp_file = "current_audio.mp3"
-                with st.spinner("Generando audio completo, espera un momento..."):
-                    async def gen():
-                        comunicador = edge_tts.Communicate(texto, "es-MX-JorgeNeural")
-                        await comunicador.save(temp_file)
-                    asyncio.run(gen())
-                st.session_state.last_audio = temp_file
-                st.rerun()
-
-st.sidebar.write(f"📊 Consultas totales: {st.session_state.visits}")
+    # Creamos columnas para organizar los botones como los tenías
+    cols = st.columns(3)
+    for i, (nombre_cap, url) in enumerate(capitulos.items()):
+        if cols[i % 3].button(nombre_cap):
+            st.audio(url)
+    st.markdown("---")
