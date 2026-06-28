@@ -1,5 +1,17 @@
 import streamlit as st
 import os
+import streamlit.components.v1 as components
+
+# --- METADATOS PARA WHATSAPP ---
+# Usamos tu portada como imagen principal de previsualización
+metadatos = """
+<head>
+    <meta property="og:title" content="Preparación Ascenso 2026 - F.D.M.E.R.C." />
+    <meta property="og:description" content="Plataforma oficial de audios de estudio para el Ascenso de Categoría." />
+    <meta property="og:image" content="https://ascensodecategoria.streamlit.app/~/+/media/cd872257da279b732bc171798951cc54.jpg" />
+</head>
+"""
+components.html(metadatos, height=0)
 
 # Configuración de página
 st.set_page_config(layout="centered", page_title="Plataforma de Ascenso F.D.M.E.R.C.")
@@ -21,24 +33,24 @@ if 'visits' not in st.session_state:
 # --- INTERFAZ PRINCIPAL ---
 st.markdown("<h1 style='text-align: center; color: #FF4B4B;'>📚 Preparación Ascenso 2026</h1>", unsafe_allow_html=True)
 
-if os.path.exists("mensaje logo.png"):
-    st.image("mensaje logo.png", use_container_width=True)
+# Usamos la portada que compartiste
+st.image("https://ascensodecategoria.streamlit.app/~/+/media/cd872257da279b732bc171798951cc54.jpg", use_container_width=True)
 
 col1, col2 = st.columns(2)
 with col1:
     if os.path.exists("QR.jpeg"):
         st.image("QR.jpeg", caption="Escanea para colaborar con 10 Bs", use_container_width=True)
 with col2:
-    if os.path.exists("logo.jpeg"):
-        st.image("logo.jpeg", use_container_width=True)
-        st.markdown("<h4 style='text-align: center; color: #1f77b4;'>Con el aval oficial de la F.D.M.E.R.C.</h4>", unsafe_allow_html=True)
+    # Usamos el logo de la federación que compartiste
+    st.image("https://ascensodecategoria.streamlit.app/~/+/media/40af232063ffdf8629dfd8c0fa297731.jpg", use_container_width=True)
+    st.markdown("<h4 style='text-align: center; color: #1f77b4;'>Con el aval oficial de la F.D.M.E.R.C.</h4>", unsafe_allow_html=True)
 
 st.markdown("---")
 
 st.header("🎧 Reproductor de Audio")
 st.write("Selecciona un audio para comenzar.")
 
-# --- DICCIONARIO DE AUDIOS COMPLETOS ---
+# --- DICCIONARIO DE AUDIOS ---
 audios = {
     "Neurociencia Neuroaprendizaje completo": "https://archive.org/download/neurociencia-neuroaprendizaje-completo/Neurociencia%20Neuroaprendizaje_completo.mp3",
     "REGLAMENTO DE FALTAS Y SANCIONES completo": "https://archive.org/download/reglamento-de-faltas-y-sanciones-completo/REGLAMENTO%20DE%20FALTAS%20Y%20SANCIONES_completo.mp3",
@@ -48,11 +60,11 @@ audios = {
     "Diseño, desarrollo e innovación del currículum completo": "https://archive.org/download/diseno-desarrollo-e-innovacion-del-curriculum-completo_202606/Dise%C3%B1o%2C%20desarrollo%20e%20innovaci%C3%B3n%20del%20curr%C3%ADculum_completo.mp3"
 }
 
-# --- GENERADOR DE BOTONES CON REPRODUCTOR INTEGRADO ---
+# --- BOTONES Y REPRODUCTOR ---
 for titulo, url in audios.items():
-    st.subheader(titulo) # Título del libro
+    st.subheader(titulo)
     if st.button("Reproducir Audio Completo", key=f"btn_{titulo}"):
-        st.audio(url, format="audio/mp3") # El reproductor aparece justo aquí
+        st.audio(url, format="audio/mp3")
     st.markdown("---")
 
 st.sidebar.write(f"📊 Consultas totales: {st.session_state.visits}")
